@@ -55,6 +55,9 @@ stages:
        runOnce:
          deploy:
            steps:
+           - task: TerraformInstaller@2
+             inputs:
+               terraformVersion: 'latest'
            - task: TerraformCLI@2
              displayName: Terraform Init
              inputs:
