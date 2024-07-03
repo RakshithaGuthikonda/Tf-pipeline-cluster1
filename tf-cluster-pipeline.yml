@@ -1,15 +1,12 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
 trigger:
 - main
+
 variables:
 - name: DEV_ENVIRONMENT
   value: dev
 - name: QA_ENVIRONMENT
   value: qa
+
 pool:
   vmImage: ubuntu-latest
 
@@ -19,13 +16,25 @@ stages:
     - job: TerraformValidateJob
       continueOnError: false
       steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: '3.x'
+          addToPath: true
+      - script: |
+          sudo apt-get update
+          sudo apt-get install -y unzip
+          curl -o terraform.zip https://releases.hashicorp.com/terraform/1.0.0/terraform_1.0.0_linux_amd64.zip
+          unzip terraform.zip
+          sudo mv terraform /usr/local/bin/
+        displayName: 'Install Terraform'
+      - script: terraform version
+        displayName: 'Verify Terraform Installation'
       - task: PublishPipelineArtifact@1
         displayName: Publish Artifacts
         inputs:
           targetPath: '$(System.DefaultWorkingDirectory)/Terraform-manifest'
           artifact: 'Terraform-manifest-out'
           publishLocation: 'pipeline'
-      
       - task: TerraformCLI@2
         displayName: Terraform Init
         inputs:
@@ -52,32 +61,41 @@ stages:
         vmImage: 'ubuntu-latest'
       environment: $(DEV_ENVIRONMENT)
       strategy:
-       runOnce:
-         deploy:
-           steps:
-       
-           - task: TerraformCLI@2
-             displayName: Terraform Init
-             inputs:
-               command: 'init'
-               workingDirectory: '$(Pipeline.Workspace)/Terraform-manifests-out'
-               backendType: 'azurerm'
-               backendServiceArm: 'terraform-aks-azurerm-svc-con'
-               backendAzureRmResourceGroupName: 'rg-storage-accounts-1'
-               backendAzureRmStorageAccountName: 'tfstorageaccountbhanu'
-               backendAzureRmContainerName: 'tfstatefiles'
-               backendAzureRmKey: 'tf-cluster.tfstate'
-               allowTelemetryCollection: false
-           - task: TerraformCLI@2
-             inputs:
-               command: 'plan'
-               workingDirectory: '$(Pipeline.Workspace)/Terraform-manifests-out'
-               environmentServiceName: 'terraform-aks-azurerm-svc-con'
-               allowTelemetryCollection: true
-           - task: TerraformCLI@2
-             inputs:
-               command: 'apply'
-               workingDirectory: '$(Pipeline.Workspace)/Terraform-manifests-out'
-               environmentServiceName: 'terraform-aks-azurerm-svc-con'
-               allowTelemetryCollection: true
-   
+        runOnce:
+          deploy:
+            steps:
+            - script: |
+                sudo apt-get update
+                sudo apt-get install -y unzip
+                curl -o terraform.zip https://releases.hashicorp.com/terraform/1.0.0/terraform_1.0.0_linux_amd64.zip
+                unzip terraform.zip
+                sudo mv terraform /usr/local/bin/
+              displayName: 'Install Terraform'
+            - script: terraform version
+              displayName: 'Verify Terraform Installation'
+            - task: TerraformCLI@2
+              displayName: Terraform Init
+              inputs:
+                command: 'init'
+                workingDirectory: '$(Pipeline.Workspace)/Terraform-manifests-out'
+                backendType: 'azurerm'
+                backendServiceArm: 'terraform-aks-azurerm-svc-con'
+                backendAzureRmResourceGroupName: 'rg-storage-accounts-1'
+                backendAzureRmStorageAccountName: 'tfstorageaccountbhanu'
+                backendAzureRmContainerName: 'tfstatefiles'
+                backendAzureRmKey: 'tf-cluster.tfstate'
+                allowTelemetryCollection: false
+            - task: TerraformCLI@2
+              displayName: Terraform Plan
+              inputs:
+                command: 'plan'
+                workingDirectory: '$(Pipeline.Workspace)/Terraform-manifests-out'
+                environmentServiceName: 'terraform-aks-azurerm-svc-con'
+                allowTelemetryCollection: true
+            - task: TerraformCLI@2
+              displayName: Terraform Apply
+              inputs:
+                command: 'apply'
+                workingDirectory: '$(Pipeline.Workspace)/Terraform-manifests-out'
+                environmentServiceName: 'terraform-aks-azurerm-svc-con'
+                allowTelemetryCollection: true
