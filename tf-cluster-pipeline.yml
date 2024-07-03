@@ -16,25 +16,22 @@ stages:
     - job: TerraformValidateJob
       continueOnError: false
       steps:
-      - task: UsePythonVersion@0
-        inputs:
-          versionSpec: '3.x'
-          addToPath: true
       - script: |
           sudo apt-get update
           sudo apt-get install -y unzip
-          curl -o terraform.zip https://releases.hashicorp.com/terraform/1.0.0/terraform_1.0.0_linux_amd64.zip
+          curl -Lo terraform.zip https://releases.hashicorp.com/terraform/1.0.0/terraform_1.0.0_linux_amd64.zip
           unzip terraform.zip
           sudo mv terraform /usr/local/bin/
-        displayName: 'Install Terraform'
-      - script: terraform version
-        displayName: 'Verify Terraform Installation'
+          terraform version
+        displayName: 'Install and Verify Terraform'
+
       - task: PublishPipelineArtifact@1
         displayName: Publish Artifacts
         inputs:
           targetPath: '$(System.DefaultWorkingDirectory)/Terraform-manifest'
           artifact: 'Terraform-manifest-out'
           publishLocation: 'pipeline'
+      
       - task: TerraformCLI@2
         displayName: Terraform Init
         inputs:
@@ -47,12 +44,14 @@ stages:
           backendAzureRmContainerName: 'tfstatefiles'
           backendAzureRmKey: 'tf-cluster.tfstate'
           allowTelemetryCollection: false
+
       - task: TerraformCLI@2
         displayName: Terraform Validate
         inputs:
           command: 'validate'
           workingDirectory: '$(System.DefaultWorkingDirectory)/Terraform-manifest'
           allowTelemetryCollection: false
+
 - stage: DeployAKSCluster
   jobs:
     - deployment: DeployDevAksCluster
@@ -67,12 +66,12 @@ stages:
             - script: |
                 sudo apt-get update
                 sudo apt-get install -y unzip
-                curl -o terraform.zip https://releases.hashicorp.com/terraform/1.0.0/terraform_1.0.0_linux_amd64.zip
+                curl -Lo terraform.zip https://releases.hashicorp.com/terraform/1.0.0/terraform_1.0.0_linux_amd64.zip
                 unzip terraform.zip
                 sudo mv terraform /usr/local/bin/
-              displayName: 'Install Terraform'
-            - script: terraform version
-              displayName: 'Verify Terraform Installation'
+                terraform version
+              displayName: 'Install and Verify Terraform'
+
             - task: TerraformCLI@2
               displayName: Terraform Init
               inputs:
@@ -85,6 +84,7 @@ stages:
                 backendAzureRmContainerName: 'tfstatefiles'
                 backendAzureRmKey: 'tf-cluster.tfstate'
                 allowTelemetryCollection: false
+
             - task: TerraformCLI@2
               displayName: Terraform Plan
               inputs:
@@ -92,6 +92,7 @@ stages:
                 workingDirectory: '$(Pipeline.Workspace)/Terraform-manifests-out'
                 environmentServiceName: 'terraform-aks-azurerm-svc-con'
                 allowTelemetryCollection: true
+
             - task: TerraformCLI@2
               displayName: Terraform Apply
               inputs:
