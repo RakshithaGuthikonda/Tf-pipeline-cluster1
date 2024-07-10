@@ -6,7 +6,7 @@ provider "azurerm" {
 variable "resource_group_name" {
   description = "Name of the resource group"
   type        = string
-  default     = "final-assessment-bhanu-rgone"
+  default     = "rakshitha_rg"
 }
 
 variable "location" {
